@@ -39,3 +39,11 @@ def test_inline_spans_cannot_bridge_blocks_or_create_links(tmp_path):
     notes, outgoing, *_ = load_graph(tmp_path)
     assert outgoing["source.md"] == {"Real.md"}
     assert notes["source.md"].tags == []
+
+
+def test_frontmatter_code_marker_cannot_hide_markdown_body(tmp_path):
+    (tmp_path / "source.md").write_text("---\ndescription: |\n  ```\n---\n[[Real]] #visible\n")
+    (tmp_path / "Real.md").write_text("")
+    notes, outgoing, *_ = load_graph(tmp_path)
+    assert outgoing["source.md"] == {"Real.md"}
+    assert notes["source.md"].tags == ["visible"]
