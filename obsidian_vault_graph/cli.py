@@ -128,6 +128,24 @@ def as_list(value: object) -> list[str]:
     return [str(value)] if str(value).strip() else []
 
 
+def visible_markdown(text: str) -> str:
+    """Exclude fenced and inline code from wikilink and tag discovery."""
+    lines = []
+    fence = None
+    for line in text.splitlines(keepends=True):
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
+                fence = None
+            lines.append("\n")
+        elif marker:
+            fence = marker[1]
+            lines.append("\n")
+        else:
+            lines.append(line)
+    return re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", "".join(lines), flags=re.S)
+
+
 def load_graph(vault: Path, scope: str | None = None):
     vault = vault.resolve()
     notes: dict[str, Note] = {}
@@ -141,6 +159,7 @@ def load_graph(vault: Path, scope: str | None = None):
             continue
         r = rel(vault, p)
         fm = parse_frontmatter(text)
+        text = visible_markdown(text)
         title = str(fm.get("title") or p.stem)
         note_aliases = as_list(fm.get("aliases")) + as_list(fm.get("alias"))
         fm_tags = [t.lstrip("#") for t in as_list(fm.get("tags"))]
