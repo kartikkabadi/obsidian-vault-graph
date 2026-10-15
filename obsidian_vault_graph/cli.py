@@ -128,14 +128,41 @@ def as_list(value: object) -> list[str]:
     return [str(value)] if str(value).strip() else []
 
 
+def strip_inline_code(block: str) -> str:
+    runs = list(re.finditer(r"`+", block))
+    pieces = []
+    cursor = 0
+    i = 0
+    while i < len(runs):
+        opener = runs[i]
+        start = opener.start()
+        backslashes = 0
+        while start > 0 and block[start - 1] == "\\":
+            backslashes += 1
+            start -= 1
+        if backslashes % 2:
+            i += 1
+            continue
+        j = i + 1
+        while j < len(runs) and len(runs[j][0]) != len(opener[0]):
+            j += 1
+        if j == len(runs):
+            i += 1
+            continue
+        pieces.extend([block[cursor:opener.start()], "\n"])
+        cursor = runs[j].end()
+        i = j + 1
+    pieces.append(block[cursor:])
+    return "".join(pieces)
+
 def visible_markdown(text: str) -> str:
     """Remove code without allowing spans to bridge Markdown blocks."""
     lines = []
     fence = None
     for line in text.splitlines(keepends=True):
         candidate = re.sub(r"^(?:[ \t]*>[ \t]?)+", "", line)
-        candidate = re.sub(r"^[ \t]*(?:[-+*]|\d+[.)])[ \t]+", "", candidate)
-        marker = re.match(r"^[ \t]*(`{3,}|~{3,})(.*)$", candidate)
+        candidate = re.sub(r"^ {0,3}(?:[-+*]|\d+[.)])[ \t]+", "", candidate)
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", candidate)
         if fence:
             if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
                 fence = None
@@ -146,7 +173,7 @@ def visible_markdown(text: str) -> str:
         else:
             lines.append(line)
     blocks = re.split(r"(\n[ \t]*\n)", "".join(lines))
-    return "".join(re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "\n", block, flags=re.S) for block in blocks)
+    return "".join(strip_inline_code(block) for block in blocks)
 
 
 def load_graph(vault: Path, scope: str | None = None):
