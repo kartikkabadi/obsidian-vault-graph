@@ -138,12 +138,12 @@ def visible_markdown(text: str) -> str:
             if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
                 fence = None
             lines.append("\n")
-        elif marker:
+        elif marker and not (marker[1][0] == "`" and "`" in marker[2]):
             fence = marker[1]
             lines.append("\n")
         else:
             lines.append(line)
-    return re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", "".join(lines), flags=re.S)
+    return re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", " ", "".join(lines), flags=re.S)
 
 
 def load_graph(vault: Path, scope: str | None = None):
