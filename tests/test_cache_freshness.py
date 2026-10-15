@@ -1,4 +1,5 @@
 import os
+import pickle
 
 from obsidian_vault_graph.cli import load_graph_cached
 
@@ -22,3 +23,14 @@ def test_same_size_rename_invalidates_cache(tmp_path):
     load_graph_cached(tmp_path, use_cache=True)
     a.rename(tmp_path / "b.md")
     assert set(load_graph_cached(tmp_path, use_cache=True)[0]) == {"b.md"}
+
+def test_previous_parser_cache_is_rebuilt(tmp_path):
+    (tmp_path / "a.md").write_text("`[[b]]`")
+    (tmp_path / "b.md").write_text("")
+    load_graph_cached(tmp_path, use_cache=True)
+    cache = tmp_path / ".hermes" / "vault_graph_cache_all.pkl"
+    payload = pickle.loads(cache.read_bytes())
+    payload["fingerprint"].pop("parser_version")
+    payload["graph"][1]["a.md"] = {"b.md"}
+    cache.write_bytes(pickle.dumps(payload))
+    assert load_graph_cached(tmp_path, use_cache=True)[1]["a.md"] == set()
