@@ -7,6 +7,7 @@ $OBSIDIAN_VAULT_PATH, $WIKI_PATH, or ~/Documents/Obsidian Vault.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import pickle
@@ -69,6 +70,21 @@ class Resolver:
             if hit:
                 return hit
         return self.choose(self.path_by_stem.get(Path(raw).stem.lower(), []))
+
+
+class GraphCacheUnpickler(pickle.Unpickler):
+    """Read graph data without permitting arbitrary pickle callables."""
+
+    def find_class(self, module, name):
+        allowed = {
+            (__name__, "Note"): Note,
+            (__name__, "Resolver"): Resolver,
+            ("collections", "Counter"): Counter,
+            ("builtins", "set"): set,
+        }
+        if (module, name) not in allowed:
+            raise pickle.UnpicklingError(f"unsupported graph cache type: {module}.{name}")
+        return allowed[module, name]
 
 
 def vault_default() -> Path:
@@ -219,7 +235,7 @@ def load_graph_cached(vault: Path, scope: str | None = None, use_cache: bool = F
     fp = cache_fingerprint(vault, scope)
     if cache_path.exists():
         try:
-            cached = pickle.loads(cache_path.read_bytes())
+            cached = GraphCacheUnpickler(io.BytesIO(cache_path.read_bytes())).load()
             if cached.get("fingerprint") == fp:
                 return cached["graph"]
         except Exception:
