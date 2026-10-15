@@ -11,3 +11,17 @@ def test_code_examples_do_not_create_graph_links_or_tags(tmp_path):
     notes, outgoing, *_ = load_graph(tmp_path)
     assert outgoing["source.md"] == {"Real.md"}
     assert notes["source.md"].tags == ["visible"]
+
+
+def test_inline_code_does_not_join_unrelated_syntax(tmp_path):
+    (tmp_path / "source.md").write_text("#visible`example`tail\n[`example`[Fake]]")
+    (tmp_path / "Fake.md").write_text("")
+    notes, outgoing, *_ = load_graph(tmp_path)
+    assert not outgoing["source.md"]
+    assert notes["source.md"].tags == ["visible"]
+
+
+def test_invalid_backtick_fence_does_not_hide_links(tmp_path):
+    (tmp_path / "source.md").write_text("```invalid`info\n[[Real]]\n")
+    (tmp_path / "Real.md").write_text("")
+    assert load_graph(tmp_path)[1]["source.md"] == {"Real.md"}
