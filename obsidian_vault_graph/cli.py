@@ -128,6 +128,59 @@ def as_list(value: object) -> list[str]:
     return [str(value)] if str(value).strip() else []
 
 
+def strip_inline_code(block: str) -> str:
+    runs = list(re.finditer(r"`+", block))
+    pieces = []
+    cursor = 0
+    i = 0
+    while i < len(runs):
+        opener = runs[i]
+        start = opener.start()
+        backslashes = 0
+        while start > 0 and block[start - 1] == "\\":
+            backslashes += 1
+            start -= 1
+        if backslashes % 2:
+            i += 1
+            continue
+        j = i + 1
+        while j < len(runs) and len(runs[j][0]) != len(opener[0]):
+            j += 1
+        if j == len(runs):
+            i += 1
+            continue
+        pieces.extend([block[cursor:opener.start()], "\n"])
+        cursor = runs[j].end()
+        i = j + 1
+    pieces.append(block[cursor:])
+    return "".join(pieces)
+
+def visible_markdown(text: str) -> str:
+    """Remove code without allowing spans to bridge Markdown blocks."""
+    lines = []
+    fence = None
+    for line in text.splitlines(keepends=True):
+        candidate = line
+        while True:
+            stripped = re.sub(r"^ {0,3}>[ \t]?", "", candidate)
+            stripped = re.sub(r"^ {0,3}(?:[-+*]|\d+[.)])[ \t]+", "", stripped)
+            if stripped == candidate:
+                break
+            candidate = stripped
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", candidate)
+        if fence:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
+                fence = None
+            lines.append("\n\n")
+        elif marker and not (marker[1][0] == "`" and "`" in marker[2]):
+            fence = marker[1]
+            lines.append("\n\n")
+        else:
+            lines.append(line)
+    blocks = re.split(r"(\n[ \t]*\n)", "".join(lines))
+    return "".join(strip_inline_code(block) for block in blocks)
+
+
 def load_graph(vault: Path, scope: str | None = None):
     vault = vault.resolve()
     notes: dict[str, Note] = {}
@@ -141,6 +194,11 @@ def load_graph(vault: Path, scope: str | None = None):
             continue
         r = rel(vault, p)
         fm = parse_frontmatter(text)
+        fm_match = FRONTMATTER_RE.match(text)
+        if fm_match:
+            text = fm_match.group(0) + visible_markdown(text[fm_match.end():])
+        else:
+            text = visible_markdown(text)
         title = str(fm.get("title") or p.stem)
         note_aliases = as_list(fm.get("aliases")) + as_list(fm.get("alias"))
         fm_tags = [t.lstrip("#") for t in as_list(fm.get("tags"))]
@@ -186,7 +244,7 @@ def cache_fingerprint(vault: Path, scope: str | None = None) -> dict:
         files.append((rel(vault, p), st.st_mtime_ns, st.st_size))
     latest = max((mtime for _, mtime, _ in files), default=0)
     total_size = sum(size for _, _, size in files)
-    return {"scope": scope, "count": len(files), "latest_mtime_ns": latest,
+    return {"parser_version": 2, "scope": scope, "count": len(files), "latest_mtime_ns": latest,
             "total_size": total_size, "files": sorted(files)}
 
 
