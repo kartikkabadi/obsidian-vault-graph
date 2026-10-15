@@ -186,7 +186,8 @@ def cache_fingerprint(vault: Path, scope: str | None = None) -> dict:
         files.append((rel(vault, p), st.st_mtime_ns, st.st_size))
     latest = max((mtime for _, mtime, _ in files), default=0)
     total_size = sum(size for _, _, size in files)
-    return {"scope": scope, "count": len(files), "latest_mtime_ns": latest, "total_size": total_size}
+    return {"scope": scope, "count": len(files), "latest_mtime_ns": latest,
+            "total_size": total_size, "files": sorted(files)}
 
 
 def load_graph_cached(vault: Path, scope: str | None = None, use_cache: bool = False):
