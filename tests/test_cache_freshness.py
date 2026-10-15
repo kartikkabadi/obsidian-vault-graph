@@ -24,6 +24,7 @@ def test_same_size_rename_invalidates_cache(tmp_path):
     a.rename(tmp_path / "b.md")
     assert set(load_graph_cached(tmp_path, use_cache=True)[0]) == {"b.md"}
 
+
 def test_previous_parser_cache_is_rebuilt(tmp_path):
     (tmp_path / "a.md").write_text("`[[b]]`")
     (tmp_path / "b.md").write_text("")
