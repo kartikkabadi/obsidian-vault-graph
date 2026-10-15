@@ -431,6 +431,14 @@ def main(argv=None):
     args.vault = args.vault.expanduser().resolve()
     if not args.vault.exists():
         raise SystemExit(f"Vault not found: {args.vault}")
+    if not args.vault.is_dir():
+        raise SystemExit(f"Vault is not a directory: {args.vault}")
+    if args.scope:
+        root = (args.vault / args.scope).resolve()
+        if not root.is_relative_to(args.vault):
+            raise SystemExit("Scope must be inside the vault")
+        if not root.is_dir():
+            raise SystemExit(f"Scope is not a directory: {args.scope}")
     graph = load_graph_cached(args.vault, args.scope, args.cache)
     globals()[f"cmd_{args.cmd.replace('-', '_')}"](args, graph)
 
