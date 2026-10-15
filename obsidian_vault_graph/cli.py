@@ -182,7 +182,11 @@ def load_graph(vault: Path, scope: str | None = None):
             continue
         r = rel(vault, p)
         fm = parse_frontmatter(text)
-        text = visible_markdown(text)
+        fm_match = FRONTMATTER_RE.match(text)
+        if fm_match:
+            text = fm_match.group(0) + visible_markdown(text[fm_match.end():])
+        else:
+            text = visible_markdown(text)
         title = str(fm.get("title") or p.stem)
         note_aliases = as_list(fm.get("aliases")) + as_list(fm.get("alias"))
         fm_tags = [t.lstrip("#") for t in as_list(fm.get("tags"))]
