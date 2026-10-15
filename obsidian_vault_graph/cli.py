@@ -343,18 +343,18 @@ def cmd_mermaid(args, graph):
     p = find_note(args.note, notes, resolve)
     if not p:
         raise SystemExit(f"Note not found or ambiguous: {args.note}")
-    nodes = [p] + sorted((out_edges[p] | in_edges[p]))[: args.limit]
+    nodes = list(dict.fromkeys([p] + sorted(out_edges[p] | in_edges[p])[: args.limit]))
     node_set = set(nodes)
-    def label(x):
-        return re.sub(r"[^A-Za-z0-9_]", "_", x)[:60]
+    ids = {path: f"n{i}" for i, path in enumerate(nodes)}
     print("graph TD")
+    for path in nodes:
+        title = notes[path].title.replace("&", "#38;").replace('"', "#quot;")
+        title = title.replace("<", "#60;").replace(">", "#62;").replace("\n", " ")
+        print(f'  {ids[path]}["{title}"]')
     for src in nodes:
         for dst in sorted(out_edges[src]):
             if dst in node_set:
-                print(f'  {label(src)}["{notes[src].title}"] --> {label(dst)}["{notes[dst].title}"]')
-        for dst in sorted(in_edges[src]):
-            if src == p and dst in node_set:
-                print(f'  {label(dst)}["{notes[dst].title}"] --> {label(src)}["{notes[src].title}"]')
+                print(f'  {ids[src]} --> {ids[dst]}')
 
 
 def cmd_uri(args, graph):
