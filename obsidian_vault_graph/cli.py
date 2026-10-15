@@ -180,8 +180,13 @@ def visible_markdown(text: str) -> str:
     lines = []
     fence = None
     for line in text.splitlines(keepends=True):
-        candidate = re.sub(r"^(?:[ \t]*>[ \t]?)+", "", line)
-        candidate = re.sub(r"^ {0,3}(?:[-+*]|\d+[.)])[ \t]+", "", candidate)
+        candidate = line
+        while True:
+            stripped = re.sub(r"^ {0,3}>[ \t]?", "", candidate)
+            stripped = re.sub(r"^ {0,3}(?:[-+*]|\d+[.)])[ \t]+", "", stripped)
+            if stripped == candidate:
+                break
+            candidate = stripped
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", candidate)
         if fence:
             if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
