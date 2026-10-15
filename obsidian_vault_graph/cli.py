@@ -368,7 +368,7 @@ def cmd_uri(args, graph):
 def cmd_qmd_topic(args, graph):
     notes, out_edges, in_edges, broken, unresolved, resolve = graph
     cmd = ["qmd", "query", args.query, "--json", "-n", str(args.qmd_limit)]
-    for collection in args.collection:
+    for collection in args.collection or ["wiki"]:
         cmd.extend(["-c", collection])
     if args.no_rerank:
         cmd.append("--no-rerank")
@@ -423,7 +423,7 @@ def main(argv=None):
     sp = sub.add_parser("bridge"); sp.add_argument("a"); sp.add_argument("b"); sp.add_argument("--depth", type=int, default=4); sp.add_argument("--limit", type=int, default=5)
     sp = sub.add_parser("qmd-topic", help="Run QMD retrieval, then graph-expand returned notes")
     sp.add_argument("query")
-    sp.add_argument("--collection", "-c", action="append", default=["wiki"], help="QMD collection filter; repeatable")
+    sp.add_argument("--collection", "-c", action="append", help="QMD collection filter; repeatable (default: wiki)")
     sp.add_argument("--qmd-limit", type=int, default=5)
     sp.add_argument("--neighbor-limit", type=int, default=10)
     sp.add_argument("--no-rerank", action="store_true")
