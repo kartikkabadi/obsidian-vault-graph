@@ -149,21 +149,24 @@ def as_list(value: object) -> list[str]:
 
 
 def visible_markdown(text: str) -> str:
-    """Exclude fenced and inline code from wikilink and tag discovery."""
+    """Remove code without allowing spans to bridge Markdown blocks."""
     lines = []
     fence = None
     for line in text.splitlines(keepends=True):
-        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        candidate = re.sub(r"^(?:[ \t]*>[ \t]?)+", "", line)
+        candidate = re.sub(r"^[ \t]*(?:[-+*]|\d+[.)])[ \t]+", "", candidate)
+        marker = re.match(r"^[ \t]*(`{3,}|~{3,})(.*)$", candidate)
         if fence:
             if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
                 fence = None
-            lines.append("\n")
-        elif marker:
+            lines.append("\n\n")
+        elif marker and not (marker[1][0] == "`" and "`" in marker[2]):
             fence = marker[1]
-            lines.append("\n")
+            lines.append("\n\n")
         else:
             lines.append(line)
-    return re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", "".join(lines), flags=re.S)
+    blocks = re.split(r"(\n[ \t]*\n)", "".join(lines))
+    return "".join(re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "\n", block, flags=re.S) for block in blocks)
 
 
 def load_graph(vault: Path, scope: str | None = None):
@@ -225,7 +228,7 @@ def cache_fingerprint(vault: Path, scope: str | None = None) -> dict:
         files.append((rel(vault, p), st.st_mtime_ns, st.st_size))
     latest = max((mtime for _, mtime, _ in files), default=0)
     total_size = sum(size for _, _, size in files)
-    return {"scope": scope, "count": len(files), "latest_mtime_ns": latest,
+    return {"parser_version": 2, "scope": scope, "count": len(files), "latest_mtime_ns": latest,
             "total_size": total_size, "files": sorted(files)}
 
 
