@@ -1,3 +1,4 @@
+import io
 import pickle
 
 from obsidian_vault_graph import cli
@@ -31,3 +32,9 @@ def test_normal_graph_cache_still_loads(tmp_path, monkeypatch):
     second = cli.load_graph_cached(tmp_path, use_cache=True)
     assert second[1] == first[1]
     assert second[-1]("a") == "a.md"
+
+
+def test_script_entrypoint_cache_classes_resolve():
+    # Protocol 0 globals mirror class references written by python cli.py.
+    assert cli.GraphCacheUnpickler(io.BytesIO(b"c__main__\nNote\n.")).load() is cli.Note
+    assert cli.GraphCacheUnpickler(io.BytesIO(b"c__main__\nResolver\n.")).load() is cli.Resolver
