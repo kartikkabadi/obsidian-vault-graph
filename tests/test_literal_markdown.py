@@ -47,3 +47,13 @@ def test_frontmatter_code_marker_cannot_hide_markdown_body(tmp_path):
     notes, outgoing, *_ = load_graph(tmp_path)
     assert outgoing["source.md"] == {"Real.md"}
     assert notes["source.md"].tags == ["visible"]
+
+
+def test_escaped_ticks_and_indented_markers_keep_visible_links(tmp_path):
+    (tmp_path / "source.md").write_text(
+        "\\`[[Real]] #visible\\`\n\n    ```\n\n[[Real]] #after\n"
+    )
+    (tmp_path / "Real.md").write_text("")
+    notes, outgoing, *_ = load_graph(tmp_path)
+    assert outgoing["source.md"] == {"Real.md"}
+    assert notes["source.md"].tags == ["after", "visible"]
