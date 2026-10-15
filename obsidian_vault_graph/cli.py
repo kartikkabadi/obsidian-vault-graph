@@ -79,6 +79,10 @@ class GraphCacheUnpickler(pickle.Unpickler):
         allowed = {
             (__name__, "Note"): Note,
             (__name__, "Resolver"): Resolver,
+            ("obsidian_vault_graph.cli", "Note"): Note,
+            ("obsidian_vault_graph.cli", "Resolver"): Resolver,
+            ("__main__", "Note"): Note,
+            ("__main__", "Resolver"): Resolver,
             ("collections", "Counter"): Counter,
             ("builtins", "set"): set,
         }
