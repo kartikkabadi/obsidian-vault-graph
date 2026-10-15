@@ -58,3 +58,12 @@ def test_escaped_ticks_and_indented_markers_keep_visible_links(tmp_path):
     notes, outgoing, *_ = load_graph(tmp_path)
     assert outgoing["source.md"] == {"Real.md", "After.md"}
     assert notes["source.md"].tags == ["after", "visible"]
+
+
+def test_fences_in_nested_list_quotes_do_not_leak_or_hide_links(tmp_path):
+    (tmp_path / "source.md").write_text("- > ```md\n  > [[Fake]] #hidden\n  > ```\n\n[[Real]] #visible\n")
+    (tmp_path / "Real.md").write_text("")
+    (tmp_path / "Fake.md").write_text("")
+    notes, outgoing, *_ = load_graph(tmp_path)
+    assert outgoing["source.md"] == {"Real.md"}
+    assert notes["source.md"].tags == ["visible"]
